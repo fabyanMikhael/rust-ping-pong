@@ -25,8 +25,19 @@ impl Player{
         }
     }
 
-    fn update(&mut self){
-        if self.bot{return;}
+    fn run_bot(&mut self, ball: &Ball){
+        let direction = (ball.position.1 - self.size.1 / 2.0) - self.position.1;
+        if direction > -3. && direction < 3.{ return;}
+        let direction = direction.signum();
+
+        self.move_y(PLAYER_SPEED * direction);
+    }
+
+    fn update(&mut self, ball: &Ball){
+        if self.bot{
+            self.run_bot(ball);
+            return;
+        }
         if is_key_down(KeyCode::W) {
             self.move_y(-PLAYER_SPEED);
         }
@@ -72,8 +83,16 @@ impl Ball{
         let mut rng = thread_rng();
         self.velocity.0 = (2 * rng.gen_bool(0.5) as i32 - 1) as f32 * BALL_SPEED;
         self.velocity.1 = (2 * rng.gen_bool(0.5) as i32 - 1) as f32 * BALL_SPEED;
-    
     }
+
+    fn check_collision_with(&mut self, other: &Player){
+        if other.position.0 < self.position.0 && other.position.0 + other.size.0 > self.position.0{
+            if other.position.1 < self.position.1 && other.position.1 + other.size.1 > self.position.1{
+                self.velocity.0 *= -1.;
+            }
+        }
+    }
+
     fn update(&mut self){
         self.move_x();
         self.move_y();
@@ -119,8 +138,11 @@ impl GameState{
 
     fn update(&mut self){
         self.ball.update();
-        self.player_one.update();
-        self.player_two.update();
+        self.player_one.update(&self.ball);
+        self.player_two.update(&self.ball);
+        self.ball.check_collision_with(&self.player_one);
+        self.ball.check_collision_with(&self.player_two);
+        
     }
 
     fn draw(&self){
